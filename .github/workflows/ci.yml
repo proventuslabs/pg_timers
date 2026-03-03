@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pg_major: [15, 16, 17, 18]
+
+    name: PostgreSQL ${{ matrix.pg_major }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run pgTAP tests
+        run: PG_MAJOR=${{ matrix.pg_major }} docker compose --profile test run --rm test
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose --profile dev logs 2>&1 | tail -100
+
+      - name: Cleanup
+        if: always()
+        run: docker compose --profile dev --profile test down -v 2>/dev/null || true
