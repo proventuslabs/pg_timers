@@ -1,0 +1,44 @@
+# Ignore everything by default
+*
+
+# Project root files
+!.gitignore
+!.dockerignore
+!.release-please-manifest.json
+!flake.nix
+!flake.lock
+!version.txt
+!pg_timers.control
+!release-please-config.json
+!docker-compose.yml
+!Dockerfile
+!Dockerfile.release
+!Dockerfile.cnpg
+!Makefile
+!META.json
+!README.md
+
+# Source
+!src/
+!src/*.c
+!src/*.h
+
+# SQL (migrations are source — versioned install file is generated at build time)
+!sql/
+!sql/migrations/
+!sql/migrations/*.sql
+sql/pg_timers--*.sql
+
+# Tests
+!t/
+!t/*.sql
+
+# CI/CD
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+
+# Examples
+!examples/
+!examples/*.yaml
+!examples/*.md

@@ -1,0 +1,9 @@
+.claude/
+.git/
+result
+flake.lock
+examples/
+*.o
+*.bc
+*.dylib
+*.so

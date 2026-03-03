@@ -1,0 +1,24 @@
+ARG PG_MAJOR=18
+FROM postgres:${PG_MAJOR} AS builder
+
+ARG PG_MAJOR=18
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    postgresql-server-dev-${PG_MAJOR} \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY src/ /build/src/
+COPY sql/ /build/sql/
+COPY Makefile pg_timers.control version.txt /build/
+WORKDIR /build
+RUN make USE_PGXS=1 clean && make USE_PGXS=1
+
+# Final image: minimal, CNPG-compatible directory layout
+# CNPG mounts at /extensions/<name>/ and adds lib/ and share/extension/
+# to dynamic_library_path and extension_control_path respectively
+FROM scratch
+
+COPY --from=builder /build/pg_timers.so /lib/
+COPY --from=builder /build/pg_timers.control /share/extension/
+COPY --from=builder /build/sql/pg_timers--*.sql /share/extension/
