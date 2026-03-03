@@ -1,0 +1,36 @@
+# Example: Using pg_timers with CloudNativePG
+#
+# Prerequisites:
+#   - CloudNativePG operator installed (v1.25+)
+#   - Kubernetes 1.31+ with ImageVolume feature gate enabled
+#
+# Apply with: kubectl apply -f cnpg-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-with-timers
+spec:
+  instances: 1
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+
+  postgresql:
+    shared_preload_libraries:
+      - pg_timers
+    parameters:
+      pg_timers.database: "app"
+
+  pluginConfiguration:
+    imageVolumes:
+      - name: pg-timers
+        image: ghcr.io/vabatta/pg_timers-cnpg:18-latest
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      postInitSQL:
+        - CREATE EXTENSION pg_timers
+
+  storage:
+    size: 1Gi

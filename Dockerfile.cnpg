@@ -1,0 +1,26 @@
+ARG PG_MAJOR=18
+FROM postgres:${PG_MAJOR} AS builder
+
+ARG PG_MAJOR=18
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    postgresql-server-dev-${PG_MAJOR} \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY src/ /build/src/
+COPY sql/ /build/sql/
+COPY Makefile pg_timers.control /build/
+WORKDIR /build
+RUN make USE_PGXS=1 clean && make USE_PGXS=1
+
+# Final image: minimal, just the extension files
+FROM busybox
+ARG PG_MAJOR=18
+
+COPY --from=builder /build/pg_timers.so /usr/lib/postgresql/${PG_MAJOR}/lib/
+COPY --from=builder /build/pg_timers.control /usr/share/postgresql/${PG_MAJOR}/extension/
+COPY --from=builder /build/sql/ /usr/share/postgresql/${PG_MAJOR}/extension/
+
+# No entrypoint - this is a data-only image
+CMD ["true"]

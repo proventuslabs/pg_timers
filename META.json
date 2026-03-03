@@ -1,0 +1,37 @@
+{
+  "name": "pg_timers",
+  "abstract": "Precise, low-latency timer scheduling for PostgreSQL",
+  "version": "0.1.0",
+  "maintainer": ["vabatta <vabatta@github>"],
+  "license": "postgresql",
+  "provides": {
+    "pg_timers": {
+      "abstract": "Precise, low-latency timer scheduling for PostgreSQL",
+      "file": "sql/pg_timers--0.1.0.sql",
+      "version": "0.1.0"
+    }
+  },
+  "prereqs": {
+    "runtime": {
+      "requires": {
+        "PostgreSQL": "15.0"
+      }
+    }
+  },
+  "resources": {
+    "bugtracker": {
+      "web": "https://github.com/vabatta/pg_timers/issues"
+    },
+    "repository": {
+      "url": "https://github.com/vabatta/pg_timers.git",
+      "web": "https://github.com/vabatta/pg_timers",
+      "type": "git"
+    }
+  },
+  "generated_by": "vabatta",
+  "meta-spec": {
+    "version": "1.0.0",
+    "url": "https://pgxn.org/meta/spec.txt"
+  },
+  "tags": ["timer", "scheduling", "background-worker", "citus"]
+}
