@@ -1,0 +1,26 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "initial-version": "0.1.0",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "pg_timers.control"
+        },
+        {
+          "type": "json",
+          "path": "META.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "META.json",
+          "jsonpath": "$.provides.pg_timers.version"
+        }
+      ]
+    }
+  }
+}
