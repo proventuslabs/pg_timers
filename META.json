@@ -2,7 +2,9 @@
   "name": "pg_timers",
   "abstract": "Precise, low-latency timer scheduling for PostgreSQL",
   "version": "0.1.0",
-  "maintainer": ["vabatta <vabatta@github>"],
+  "maintainer": [
+    "vabatta <vabatta@github>"
+  ],
   "license": "postgresql",
   "provides": {
     "pg_timers": {
@@ -33,5 +35,10 @@
     "version": "1.0.0",
     "url": "https://pgxn.org/meta/spec.txt"
   },
-  "tags": ["timer", "scheduling", "background-worker", "citus"]
+  "tags": [
+    "timer",
+    "scheduling",
+    "background-worker",
+    "citus"
+  ]
 }
