@@ -12,8 +12,19 @@ SELECT timers.schedule_in('1 second', $$INSERT INTO integration_results (msg) VA
 -- Schedule a 1-second timer with invalid SQL (should fail gracefully)
 SELECT timers.schedule_in('1 second', 'SELECT * FROM nonexistent_table_xyz_integration');
 
--- Wait for bgworker to process timers
-SELECT pg_sleep(5);
+-- Poll until bgworker processes timers (500ms intervals, 30s timeout)
+DO $$
+DECLARE
+    _i integer;
+BEGIN
+    FOR _i IN 1..60 LOOP
+        IF (SELECT count(*) FROM timers.timers WHERE status != 0) >= 2 THEN
+            EXIT;
+        END IF;
+        PERFORM pg_sleep(0.5);
+    END LOOP;
+END;
+$$;
 
 -- Verify good timer fired
 SELECT is(
