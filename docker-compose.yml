@@ -2,18 +2,18 @@ services:
   dev:
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         PG_MAJOR: ${PG_MAJOR:-18}
-    container_name: pg_timers-dev
     profiles: [dev, test]
     environment:
       POSTGRES_PASSWORD: test
       POSTGRES_DB: testdb
+    ports:
+      - "5433:5432"
     command: >
       -c shared_preload_libraries=pg_timers
       -c pg_timers.database=testdb
-    ports:
-      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s
@@ -23,6 +23,7 @@ services:
   test:
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         PG_MAJOR: ${PG_MAJOR:-18}
     profiles: [test]
@@ -31,4 +32,5 @@ services:
         condition: service_healthy
     environment:
       PGPASSWORD: test
-    entrypoint: ["pg_prove", "-U", "postgres", "-h", "dev", "-d", "testdb", "--ext", ".sql", "/t/"]
+    entrypoint: >
+      pg_prove -U postgres -h dev -d testdb --ext .sql /t/

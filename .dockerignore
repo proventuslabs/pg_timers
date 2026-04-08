@@ -1,9 +1,30 @@
-.claude/
+# Version control
 .git/
-result
+
+# CI/CD
+.github/
+
+# Nix
+flake.nix
 flake.lock
-examples/
+.direnv/
+result
+
+# Local build artifacts
 *.o
 *.bc
-*.dylib
 *.so
+*.dylib
+logfile
+
+# Docs and config not needed at build time
+.claude/
+.gitignore
+.dockerignore
+README.md
+CLAUDE.md
+DEVELOPMENT.md
+release-please-config.json
+.release-please-manifest.json
+META.json
+examples/

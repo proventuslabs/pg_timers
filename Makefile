@@ -2,7 +2,7 @@ MODULE_big = pg_timers
 OBJS = src/pg_timers.o src/bgworker.o src/functions.o
 
 EXTENSION = pg_timers
-EXTVERSION = $(shell cat version.txt)
+EXTVERSION = $(shell grep "^default_version" pg_timers.control | sed "s/.*'\(.*\)'.*/\1/")
 DATA = sql/$(EXTENSION)--$(EXTVERSION).sql
 MIGRATIONS = $(sort $(wildcard sql/migrations/*.sql))
 
@@ -22,7 +22,7 @@ endif
 # Stitch migrations into versioned install file
 all: sql/$(EXTENSION)--$(EXTVERSION).sql
 
-sql/$(EXTENSION)--$(EXTVERSION).sql: $(MIGRATIONS) version.txt
+sql/$(EXTENSION)--$(EXTVERSION).sql: $(MIGRATIONS) pg_timers.control
 	cat $(MIGRATIONS) > $@
 
 clean: clean-versioned-sql
@@ -30,19 +30,16 @@ clean: clean-versioned-sql
 clean-versioned-sql:
 	rm -f sql/$(EXTENSION)--*.sql
 
-.PHONY: dev test psql down build
+.PHONY: dev test psql down
 
 dev:
 	docker compose --profile dev up --build -d
 
 test:
-	docker compose --profile test run --rm test
+	docker compose --profile test run --rm --build test
 
 psql:
-	docker exec -it pg_timers-dev psql -U postgres -d testdb
+	docker compose exec dev psql -U postgres -d testdb
 
 down:
 	docker compose --profile dev down -v
-
-build:
-	$(MAKE) USE_PGXS=1 all
