@@ -17,7 +17,28 @@ SELECT timers.schedule_in('5 seconds', $$SELECT expire_session(42)$$);
 SELECT timers.cancel(timer_id, shard_key);
 ```
 
-All functions accept optional `shard_key bigint DEFAULT 0` (Citus distribution) and `timeout_ms integer DEFAULT 0` (per-action statement timeout in ms) parameters.
+All scheduling functions accept optional `shard_key bigint DEFAULT 0` (Citus distribution) and `timeout_ms integer DEFAULT 0` (per-action statement timeout in ms) parameters.
+
+### Testing primitives
+
+For pgTAP / unit tests that need to assert on a timer's side effects without
+waiting for the background worker:
+
+```sql
+-- Fire a specific pending timer synchronously, ignoring fire_at.
+-- Returns true iff the action succeeded.
+SELECT timers.fire(timer_id, shard_key);
+
+-- Fire every pending timer synchronously, ignoring fire_at.
+-- Returns the number of timers processed.
+SELECT timers.fire_all_pending();
+```
+
+Both run in the caller's backend with the same semantics as the bgworker
+(subtransaction isolation, role switching to `scheduled_by`, per-timer
+`timeout_ms`), which makes the usual pgTAP pattern `BEGIN; ...; ROLLBACK;`
+just work: the scheduled row, the action's side effects, and the status
+transition all roll back together.
 
 ## Architecture
 
