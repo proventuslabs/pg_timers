@@ -44,3 +44,18 @@ CREATE FUNCTION timers.fire_all_pending()
 RETURNS integer
 AS 'MODULE_PATHNAME', 'pg_timers_fire_all_pending'
 LANGUAGE C VOLATILE;
+
+COMMENT ON FUNCTION timers.schedule_at(timestamptz, text, bigint, integer) IS
+    'Schedule action to run at the given absolute time. Returns the timer id.';
+
+COMMENT ON FUNCTION timers.schedule_in(interval, text, bigint, integer) IS
+    'Schedule action to run after the given interval from clock_timestamp(). Returns the timer id.';
+
+COMMENT ON FUNCTION timers.cancel(bigint, bigint) IS
+    'Cancel a pending timer. Returns true iff the timer was still pending.';
+
+COMMENT ON FUNCTION timers.fire(bigint, bigint) IS
+    'Testing primitive: synchronously run a pending timer NOW in the caller''s backend, ignoring fire_at. Returns true iff the action succeeded.';
+
+COMMENT ON FUNCTION timers.fire_all_pending() IS
+    'Testing primitive: synchronously run every pending timer NOW in the caller''s backend, ignoring fire_at. Returns the number of timers processed.';
