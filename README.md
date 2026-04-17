@@ -21,31 +21,65 @@ All scheduling functions accept optional `shard_key bigint DEFAULT 0` (Citus dis
 
 ### Testing primitives
 
-For pgTAP / unit tests that need to assert on a timer's side effects without
-waiting for the background worker:
+`schedule_at`/`schedule_in` defer execution to the background worker, which is
+awkward to assert on from a pgTAP test — you either wait for real wall-clock
+time or sprinkle `pg_sleep`s and hope. The two functions below sidestep that by
+running the action in the calling backend right now, ignoring `fire_at`:
 
 ```sql
--- Fire a specific pending timer synchronously, ignoring fire_at.
+-- Fire a specific pending timer synchronously.
 -- Returns true iff the action succeeded.
 SELECT timers.fire(timer_id, shard_key);
 
--- Fire every pending timer synchronously, ignoring fire_at.
--- Returns the number of timers processed.
+-- Fire every pending timer synchronously.
+-- Returns the number of timers processed (successes + failures).
 SELECT timers.fire_all_pending();
 ```
 
-Both run in the caller's backend with the same semantics as the bgworker
-(subtransaction isolation, role switching to `scheduled_by`, per-timer
-`timeout_ms`), which makes the usual pgTAP pattern `BEGIN; ...; ROLLBACK;`
-just work: the scheduled row, the action's side effects, and the status
-transition all roll back together.
+Both functions reuse the bgworker execution path, so they give you the same
+semantics as production:
 
-> **Security caveat.** `fire()` does not restrict by `scheduled_by`: any role
-> granted `EXECUTE ON FUNCTION timers.fire` *and* `SELECT ON timers.timers`
-> can fire **any** pending timer out of order, causing the scheduler's
-> action to run as the scheduler, not as the caller. Both objects are
-> `REVOKE ALL FROM PUBLIC` by default — keep it that way in production and
-> grant these only to test roles.
+- action runs as `scheduled_by` (the session_user at schedule time)
+- each action is wrapped in its own subtransaction, so one failure doesn't
+  poison the others
+- per-timer `timeout_ms` is honored (`SET LOCAL statement_timeout`)
+- on success the row moves to `status = 1`, on error to `status = 2` with the
+  message recorded in the `error` column
+
+The only differences from the bgworker: (a) they run in *your* transaction
+rather than a dedicated one, and (b) they ignore `fire_at`. That makes the
+usual `BEGIN; ...; ROLLBACK;` pgTAP pattern Just Work — the scheduled row, the
+action's side effects, and the status transition all roll back together.
+
+**Typical pgTAP test:**
+
+```sql
+BEGIN;
+SELECT plan(2);
+
+-- The function under test schedules a cleanup 30 minutes out.
+SELECT schedule_user_cleanup(42);
+
+-- Drain the queue synchronously instead of waiting 30 minutes.
+SELECT is(timers.fire_all_pending(), 1, 'exactly one timer was scheduled');
+
+-- Now assert on the side effect the timer was supposed to produce.
+SELECT is(
+    (SELECT count(*)::int FROM sessions WHERE user_id = 42),
+    0,
+    'cleanup deleted the user''s sessions'
+);
+
+SELECT * FROM finish();
+ROLLBACK;
+```
+
+> **Security caveat.** `fire()` and `fire_all_pending()` do not restrict by
+> `scheduled_by`: a role granted `EXECUTE` on either function *and* `SELECT`
+> on `timers.timers` can fire **any** pending timer out of order, causing the
+> scheduler's action to run under the scheduler's identity at a moment they
+> didn't choose. Both objects are `REVOKE ALL FROM PUBLIC` by default — keep
+> it that way in production and grant these only to test roles.
 
 ## Architecture
 
@@ -301,6 +335,10 @@ GRANT EXECUTE ON FUNCTION timers.schedule_at(timestamptz, text, bigint, integer)
 GRANT EXECUTE ON FUNCTION timers.schedule_in(interval, text, bigint, integer) TO my_app_role;
 GRANT EXECUTE ON FUNCTION timers.cancel(bigint, bigint) TO my_app_role;
 GRANT SELECT ON timers.timers TO my_app_role;
+
+-- Testing primitives — grant only to test roles, not to production app roles.
+GRANT EXECUTE ON FUNCTION timers.fire(bigint, bigint) TO my_test_role;
+GRANT EXECUTE ON FUNCTION timers.fire_all_pending() TO my_test_role;
 ```
 
 **Important:** Any user with `EXECUTE` on the scheduling functions can cause arbitrary SQL to run under their own identity via the background worker — even after their session ends. Use the `timeout_ms` parameter to limit runaway queries.
