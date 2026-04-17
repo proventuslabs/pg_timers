@@ -40,6 +40,13 @@ Both run in the caller's backend with the same semantics as the bgworker
 just work: the scheduled row, the action's side effects, and the status
 transition all roll back together.
 
+> **Security caveat.** `fire()` does not restrict by `scheduled_by`: any role
+> granted `EXECUTE ON FUNCTION timers.fire` *and* `SELECT ON timers.timers`
+> can fire **any** pending timer out of order, causing the scheduler's
+> action to run as the scheduler, not as the caller. Both objects are
+> `REVOKE ALL FROM PUBLIC` by default — keep it that way in production and
+> grant these only to test roles.
+
 ## Architecture
 
 ```mermaid
