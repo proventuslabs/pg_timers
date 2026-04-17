@@ -1,14 +1,16 @@
 {
   "name": "pg_timers",
   "abstract": "Precise, low-latency timer scheduling for PostgreSQL",
-  "version": "0.0.0",
-  "maintainer": ["proventuslabs <proventuslabs@github>"],
+  "version": "0.1.0",
+  "maintainer": [
+    "proventuslabs <proventuslabs@github>"
+  ],
   "license": "postgresql",
   "provides": {
     "pg_timers": {
       "abstract": "Precise, low-latency timer scheduling for PostgreSQL",
       "file": "sql/pg_timers.sql",
-      "version": "0.0.0"
+      "version": "0.1.0"
     }
   },
   "prereqs": {
@@ -33,5 +35,10 @@
     "version": "1.0.0",
     "url": "https://pgxn.org/meta/spec.txt"
   },
-  "tags": ["timer", "scheduling", "background-worker", "citus"]
+  "tags": [
+    "timer",
+    "scheduling",
+    "background-worker",
+    "citus"
+  ]
 }
