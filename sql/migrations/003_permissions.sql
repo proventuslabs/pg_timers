@@ -13,3 +13,5 @@ REVOKE ALL ON TABLE timers.timers FROM PUBLIC;
 REVOKE ALL ON FUNCTION timers.schedule_at(timestamptz, text, bigint, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION timers.schedule_in(interval, text, bigint, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION timers.cancel(bigint, bigint) FROM PUBLIC;
+REVOKE ALL ON FUNCTION timers.fire(bigint, bigint) FROM PUBLIC;
+REVOKE ALL ON FUNCTION timers.fire_all_pending() FROM PUBLIC;

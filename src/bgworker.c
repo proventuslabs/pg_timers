@@ -89,10 +89,12 @@ pg_timers_worker_exit(int code, Datum arg)
 /*
  * Execute a single timer action inside a subtransaction as the scheduling user.
  * Returns true on success, false on failure (with error_msg set).
+ *
+ * Shared with functions.c (fire / fire_all_pending) — declared in pg_timers.h.
  */
-static bool
-execute_timer_action(const char *action, const char *scheduled_by,
-					 int timeout_ms, char **error_msg)
+bool
+pg_timers_execute_action(const char *action, const char *scheduled_by,
+						 int timeout_ms, char **error_msg)
 {
 	MemoryContext oldctx;
 	bool		success = true;
@@ -141,17 +143,22 @@ execute_timer_action(const char *action, const char *scheduled_by,
 	{
 		ErrorData  *edata;
 
-		MemoryContextSwitchTo(CurrentMemoryContext);
+		/*
+		 * Copy the error data into TopTransactionContext *before* flushing
+		 * the error state (which resets ErrorContext) and before rolling
+		 * back the subtransaction (which may also tear down short-lived
+		 * contexts).  Allocating the copy in a context outside the aborted
+		 * subtransaction keeps edata->message valid for the pstrdup below.
+		 */
+		oldctx = MemoryContextSwitchTo(TopTransactionContext);
 		edata = CopyErrorData();
 		FlushErrorState();
 
 		RollbackAndReleaseCurrentSubTransaction();
 
-		oldctx = MemoryContextSwitchTo(TopTransactionContext);
 		*error_msg = pstrdup(edata->message);
-		MemoryContextSwitchTo(oldctx);
-
 		FreeErrorData(edata);
+		MemoryContextSwitchTo(oldctx);
 		success = false;
 	}
 	PG_END_TRY();
@@ -275,10 +282,10 @@ tick(void)
 				char	   *error_msg = NULL;
 				Datum		mark_values[3];
 
-				bool		ok = execute_timer_action(actions[i],
-													  scheduled_bys[i],
-													  timeout_mss[i],
-													  &error_msg);
+				bool		ok = pg_timers_execute_action(actions[i],
+														  scheduled_bys[i],
+														  timeout_mss[i],
+														  &error_msg);
 
 				mark_values[0] = Int64GetDatum(ids[i]);
 				mark_values[1] = Int64GetDatum(shard_keys[i]);

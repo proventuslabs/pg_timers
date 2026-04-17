@@ -36,4 +36,15 @@ extern void pg_timers_signal_worker(TimestampTz new_fire_at);
 /* Background worker entry point — defined in bgworker.c */
 extern PGDLLEXPORT void pg_timers_bgworker_main(Datum main_arg);
 
+/*
+ * Execute a single timer action inside a subtransaction as the scheduling
+ * user.  Shared between the bgworker tick loop and the synchronous fire
+ * primitives.  Returns true on success, false on failure (with *error_msg
+ * allocated in TopTransactionContext).
+ */
+extern bool pg_timers_execute_action(const char *action,
+									 const char *scheduled_by,
+									 int timeout_ms,
+									 char **error_msg);
+
 #endif /* PG_TIMERS_H */
