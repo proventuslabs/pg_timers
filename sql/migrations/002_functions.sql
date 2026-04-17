@@ -94,10 +94,11 @@ COMMENT ON FUNCTION timers.fire_all_pending() IS
 
 Intended for tests that invoke a function which schedules timers internally
 and want to drain the queue without knowing the individual timer ids. Locks
-all status=0 rows with FOR UPDATE SKIP LOCKED (rows held by the background
-worker or another session are skipped), then runs each action with full
-bgworker parity — as scheduled_by, inside its own subtransaction so one
-action''s failure does not affect the others, with per-timer statement_timeout.
+all status=0 rows with FOR UPDATE SKIP LOCKED in ascending fire_at order
+(rows held by the background worker or another session are skipped), then
+runs each action in that order with full bgworker parity — as scheduled_by,
+inside its own subtransaction so one action''s failure does not affect the
+others, with per-timer statement_timeout.
 Successful actions move their row to status=1, failures to status=2 with the
 error message recorded. Runs in the caller''s transaction, so BEGIN; ...;
 ROLLBACK; undoes every side effect together. Returns the number of timers

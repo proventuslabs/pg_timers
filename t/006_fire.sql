@@ -6,7 +6,7 @@
 -- is to let pgTAP tests assert on timer side effects *without* waiting for the
 -- bgworker and *without* leaking committed state across tests.
 BEGIN;
-SELECT plan(26);
+SELECT plan(27);
 
 -- ── Signature / return-type / language ─────────────────────────────────
 SELECT has_function('timers', 'fire', ARRAY['bigint', 'bigint']);
@@ -164,6 +164,25 @@ SELECT is(
     timers.fire_all_pending(),
     0,
     'fire_all_pending() returns 0 when no pending timers remain'
+);
+
+-- ── fire_all_pending() orders by fire_at (bgworker parity) ─────────────
+-- Schedule in reverse order; assert the action with the earlier fire_at
+-- produced its side effect before the later one.
+DELETE FROM timers.timers;
+CREATE TEMP TABLE fire_order (seq bigserial, msg text);
+
+SELECT timers.schedule_at('2999-06-01',
+    $$INSERT INTO fire_order (msg) VALUES ('late')$$);
+SELECT timers.schedule_at('2999-01-01',
+    $$INSERT INTO fire_order (msg) VALUES ('early')$$);
+
+SELECT timers.fire_all_pending();
+
+SELECT is(
+    (SELECT array_agg(msg ORDER BY seq) FROM fire_order),
+    ARRAY['early', 'late'],
+    'fire_all_pending() executes actions in ascending fire_at order'
 );
 
 SELECT * FROM finish();

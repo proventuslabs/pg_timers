@@ -329,6 +329,7 @@ pg_timers_fire_all_pending(PG_FUNCTION_ARGS)
 	static const char *FETCH_SQL =
 		"SELECT id, shard_key, action, scheduled_by, timeout_ms "
 		"FROM timers.timers WHERE status = 0 "
+		"ORDER BY fire_at "
 		"FOR UPDATE SKIP LOCKED";
 
 	SPI_connect();
